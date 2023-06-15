@@ -1,0 +1,164 @@
+<!-- pagination -->
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>University Table</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        .container {
+            margin: 30px;
+        }
+    </style>
+</head>
+
+
+<body>
+    <div class="container">
+        <h1>University Information</h1>
+        <input type="text" id="searchInput" placeholder="Search Title or Domain" class="form-control mb-4">
+        <div id="paginationContainer"></div>
+        <table id="UniversityTable" class="table table-striped">
+            <thead style="background-color: rgb(235, 184, 109);">
+                <tr>
+                    <th onclick="sortTable('country')">Country</th>
+                    <th onclick="sortTable('alpha_code')">Alpha Code</th>
+                    <th onclick="sortTable('name')">University</th>
+                    <th onclick="sortTable('state_province')">State</th>
+                    <th onclick="sortTable('domains')">Domain</th>
+                    <th onclick="sortTable('web_pages')">Website</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+    <script>
+        const apiUrl = 'http://universities.hipolabs.com/search?country=United+States';
+        let universitiesData = [];
+        let currentPage = 1;
+        const resultsPerPage = 1000;
+        let filteredData = [];
+        let sortDirection = {
+            country: 'asc',
+            alpha_code: 'asc',
+            name: 'asc',
+            state_province: 'asc',
+            domains: 'asc',
+            web_pages: 'asc'
+        };
+
+        const searchInput = document.getElementById('searchInput');
+        searchInput.addEventListener('input', handleSearch);
+
+        function fetchData() {
+            fetch(apiUrl)
+                .then(response => response.json())
+                .then(data => {
+                    universitiesData = data;
+                    filteredData = universitiesData.slice();
+                    renderTable();
+                    renderPagination();
+                })
+                .catch(error => {
+                    console.error('Error: ', error);
+                });
+        }
+
+        function renderTable() {
+            const UniversityTable = document.getElementById('UniversityTable');
+            const tbody = UniversityTable.getElementsByTagName('tbody')[0];
+            tbody.innerHTML = '';
+
+            const start = (currentPage - 1) * resultsPerPage;
+            const end = start + resultsPerPage;
+            const paginatedData = filteredData.slice(start, end);
+
+            paginatedData.forEach(university => {
+                const country = university.country;
+                const ac = university.alpha_two_code;
+                const name = university.name;
+                const state = university.state_province || 'N/A';
+                const domain = Array.isArray(university.domains) ? university.domains[0] : 'N/A';
+                const website = Array.isArray(university.web_pages) ? university.web_pages[0] : 'N/A';
+
+                const row = tbody.insertRow();
+                row.insertCell().innerText = country;
+                row.insertCell().innerText = ac;
+                row.insertCell().innerText = name;
+                row.insertCell().innerText = state;
+                row.insertCell().innerText = domain;
+                row.insertCell().innerHTML = `<a href="${website}" target="_blank">${website}</a>`;
+            });
+        }
+
+        function renderPagination() {
+            const totalResults = filteredData.length;
+            const totalPages = Math.ceil(totalResults / resultsPerPage);
+
+            const paginationContainer = document.getElementById('paginationContainer');
+            paginationContainer.innerHTML = '';
+
+            for (let i = 1; i <= totalPages; i++) {
+                const pageButton = document.createElement('button');
+                pageButton.textContent = i;
+                pageButton.className = 'btn btn-link';
+                if (i === currentPage) {
+                    pageButton.classList.add('active');
+                }
+                pageButton.addEventListener('click', () => {
+                    currentPage = i;
+                    renderTable();
+                    renderPagination();
+                });
+
+                paginationContainer.appendChild(pageButton);
+            }
+        }
+
+        function handleSearch() {
+            const searchTerm = searchInput.value.toLowerCase();
+            filteredData = universitiesData.filter(university => {
+                const nameMatch = university.name.toLowerCase().includes(searchTerm);
+                const domainMatch = Array.isArray(university.domains) && university.domains[0].toLowerCase().includes(searchTerm);
+                return nameMatch || domainMatch;
+            });
+
+            currentPage = 1;
+            renderTable();
+            renderPagination();
+        }
+
+        function sortTable(column) {
+            filteredData.sort((a, b) => {
+                const valueA = Array.isArray(a[column]) ? a[column][0] : a[column];
+                const valueB = Array.isArray(b[column]) ? b[column][0] : b[column];
+
+                if (sortDirection[column] === 'asc') {
+                    return valueA.localeCompare(valueB);
+                } else {
+                    return valueB.localeCompare(valueA);
+                }
+            });
+
+            sortDirection[column] = sortDirection[column] === 'asc' ? 'desc' : 'asc';
+
+            renderTable();
+        }
+
+        fetchData();
+    </script>
+</body>
+
+</html>
+
+
+<!-- Create a Web Page and show API data in a table with below features:
+
+Use of JavaScript fetch()
+
+Use bootstrap table
+
+Implement sort and filtering features in table. -->
